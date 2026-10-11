@@ -1,0 +1,5 @@
+# Optional: group sources so one rule covers all of them.
+# A domain name works in the source position of a label, e.g. "work:*:read".
+# Names must be unique across sources and domains.
+support: [freshdesk]
+work: [jira, wrike]

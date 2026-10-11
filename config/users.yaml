@@ -1,0 +1,29 @@
+# Users: effective access = the agent's roles ∩ the user's roles.
+# Keep this file owned by security (CODEOWNERS): it decides who may do what.
+#
+# Who the "user" of a call is:
+#   1. A person: the agent forwards their SSO token in X-Pact-User-Token
+#      (needs PACT_OIDC__ISSUER and PACT_OIDC__AUDIENCE). Pact matches the token's
+#      claims against `match`; every matching entry adds its roles. A signed-in person
+#      who matches no entry gets no roles.
+#   2. A service user: an agent calling without a token runs as the entry that lists
+#      it in `service_for`. Service users cannot be matched by tokens.
+#   3. Otherwise the built-in `anonymous` user, which has no roles here, so unattended
+#      calls from agents without a service user are denied.
+users:
+  anonymous:
+    roles: []
+
+  # The default agent's identity for unattended calls: everything the bundled packs offer.
+  default-service:
+    service_for: [default]
+    roles: [freshdesk:responder, jira:contributor, wrike:contributor]
+
+  # Example SSO entries (inactive until OIDC is configured):
+  support-team:
+    match: { groups: support }
+    roles: [freshdesk:responder, jira:reader]
+
+  engineering:
+    match: { groups: engineering }
+    roles: [jira:contributor, wrike:contributor, freshdesk:reader]

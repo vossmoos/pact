@@ -1,0 +1,31 @@
+# Jira Cloud pack. A source named "jira" publishes jira_get_issue = jira:issue:read
+# and the roles jira:reader and jira:contributor.
+pack: jira
+version: "1"
+description: Issues, comments, workflow transitions and worklogs.
+
+tools:
+  get_issue:
+    action: issue:read
+    taint_fields:
+      pii: [assignee.email, reporter.email]
+  search_issues:
+    action: issue:list
+    taint_fields:
+      pii: [assignee.email, reporter.email]
+  list_comments:
+    action: comment:list
+    taint_fields:
+      pii: [author.email]
+  list_transitions: transition:list
+  create_issue: issue:create
+  add_comment: comment:create
+  transition_issue: issue:update
+  assign_issue: issue:update
+  log_work: worklog:create
+
+roles:
+  reader: [issue:read, issue:list, comment:list, transition:list]
+  contributor:
+    [issue:read, issue:list, comment:list, transition:list,
+     issue:write, comment:create, worklog:create]

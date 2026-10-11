@@ -1,0 +1,16 @@
+# The starter agent: every role of every bundled pack.
+# Its key is PACT_AGENT__DEFAULT__KEY (deploy.sh generates one into .env if it is missing).
+# Without a user token it runs as the service user `default-service` (users.yaml).
+# Narrow this file, or replace it with purpose-built agents, before real use.
+agent: default
+owner: platform@example.com
+description: Full access to Freshdesk, Jira and Wrike. For setup and smoke tests.
+
+roles:
+  - freshdesk:responder   # read, create/update tickets, private notes, public replies
+  - jira:contributor      # read, create/update issues, comments, transitions, worklogs
+  - wrike:contributor     # read, create/update tasks, comments
+
+# Without this toleration, freshdesk_get_contact is hidden and requester e-mails,
+# phone numbers and similar fields are redacted from replies.
+tolerations: [pii]

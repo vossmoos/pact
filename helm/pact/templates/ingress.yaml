@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled }}
+{{- $host := required "ingress.host is required when ingress.enabled=true" .Values.ingress.host }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "pact.fullname" . }}
+  labels:
+    {{- include "pact.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    - hosts: [{{ $host | quote }}]
+      secretName: {{ printf "%s-tls" ($host | replace "." "-") | trunc 63 | trimSuffix "-" }}
+  {{- end }}
+  rules:
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          # Only the MCP endpoint and the health check are public.
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "pact.fullname" . }}
+                port:
+                  name: http
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "pact.fullname" . }}
+                port:
+                  name: http
+{{- end }}

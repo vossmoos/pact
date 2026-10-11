@@ -1,0 +1,155 @@
+{{- $source := .Values.config.source -}}
+{{- if not (has $source (list "configMap" "gitSync" "image")) -}}
+{{- fail "config.source must be configMap, gitSync or image" -}}
+{{- end -}}
+{{- $configMap := and (eq $source "configMap") .Values.config.files -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pact.fullname" . }}
+  labels:
+    {{- include "pact.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pact.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pact.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        pact.dev/config-source: {{ $source | quote }}
+        {{- if and (not .Values.existingSecret) .Values.secrets }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- /* No config checksum on purpose: Pact hot-reloads the folder and sends tools/list_changed. */}}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if eq $source "gitSync" }}
+      initContainers:
+        # Fetch the config once so Pact starts with a valid folder.
+        - name: git-sync-init
+          image: {{ .Values.gitSync.image }}
+          env:
+            {{- include "pact.gitSyncEnv" . | nindent 12 }}
+            - name: GITSYNC_ONE_TIME
+              value: "true"
+          {{- with .Values.gitSync.existingSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ . }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.gitSync.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /git
+            - name: tmp
+              mountPath: /tmp
+      {{- end }}
+      containers:
+        - name: pact
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+          env:
+            - name: PACT_HOST
+              value: "0.0.0.0"
+            - name: PACT_PORT
+              value: {{ .Values.containerPort | quote }}
+            - name: PACT_CONFIG_DIR
+              value: {{ include "pact.configDir" . | quote }}
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- if or .Values.existingSecret .Values.secrets }}
+          envFrom:
+            - secretRef:
+                name: {{ include "pact.secretName" . }}
+          {{- end }}
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if or $configMap (eq $source "gitSync") }}
+            - name: config
+              mountPath: {{ ternary "/git" "/config" (eq $source "gitSync") }}
+              readOnly: true
+            {{- end }}
+        {{- if eq $source "gitSync" }}
+        - name: git-sync
+          image: {{ .Values.gitSync.image }}
+          env:
+            {{- include "pact.gitSyncEnv" . | nindent 12 }}
+          {{- with .Values.gitSync.existingSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ . }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.gitSync.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /git
+            - name: tmp
+              mountPath: /tmp
+        {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if $configMap }}
+        - name: config
+          configMap:
+            name: {{ include "pact.fullname" . }}-config
+            items:
+              {{- range $path, $_ := .Values.config.files }}
+              - key: {{ include "pact.configKey" $path }}
+                path: {{ $path }}
+              {{- end }}
+        {{- else if eq $source "gitSync" }}
+        - name: config
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

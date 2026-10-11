@@ -1,0 +1,18 @@
+# Wrike pack. A source named "wrike" publishes wrike_get_task = wrike:task:read
+# and the roles wrike:reader and wrike:contributor.
+pack: wrike
+version: "1"
+description: Tasks, comments and folders/projects.
+
+tools:
+  get_task: task:read
+  list_tasks: task:list
+  get_task_comments: comment:list
+  list_folders: folder:list
+  create_task: task:create
+  update_task: task:update
+  add_comment: comment:create
+
+roles:
+  reader: [task:read, task:list, comment:list, folder:list]
+  contributor: [task:read, task:list, comment:list, folder:list, task:write, comment:create]

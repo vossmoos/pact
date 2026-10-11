@@ -1,0 +1,34 @@
+# Freshdesk pack. Pact prefixes every label, tool and role with the source name,
+# so a source named "freshdesk" publishes freshdesk_get_ticket = freshdesk:ticket:read
+# and the roles freshdesk:reader, freshdesk:contributor, freshdesk:responder.
+pack: freshdesk
+version: "1"
+description: Helpdesk tickets, conversations, contacts, companies and solution articles.
+
+tools:
+  list_tickets: ticket:list
+  search_tickets: ticket:list
+  get_ticket:
+    action: ticket:read
+    taint_fields:
+      pii: [requester.name, requester.email, requester.phone, requester.mobile, cc_emails]
+  list_conversations:
+    action: conversation:list
+    taint_fields:
+      pii: [from_email, to_emails, cc_emails]
+  create_ticket: ticket:create
+  update_ticket: ticket:update
+  add_note: note:create
+  reply_to_ticket: reply:send
+  get_contact: { action: contact:read, taints: [pii] }
+  get_company: company:read
+  get_article: article:read
+
+roles:
+  reader: [ticket:read, ticket:list, conversation:list, contact:read, company:read, article:read]
+  contributor:
+    [ticket:read, ticket:list, conversation:list, contact:read, company:read, article:read,
+     ticket:write, note:create]
+  responder:
+    [ticket:read, ticket:list, conversation:list, contact:read, company:read, article:read,
+     ticket:write, note:create, reply:send]

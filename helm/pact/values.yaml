@@ -1,0 +1,90 @@
+# Default values for Pact. Secrets never belong in this file: deploy.sh creates the
+# Secret from .env and passes its name as existingSecret.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Stateful MCP sessions live in memory. Keep 1 replica, or set
+# env.PACT_STATELESS_HTTP: "true" before scaling out (clients then refresh tool
+# lists on reconnect instead of receiving tools/list_changed).
+replicaCount: 1
+
+image:
+  repository: rg.fr-par.scw.cloud/pact/pact
+  tag: "" # defaults to the chart appVersion; deploy.sh sets the git SHA
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+# - name: scaleway-registry
+
+service:
+  type: ClusterIP
+  port: 80
+containerPort: 8080
+
+ingress:
+  enabled: false
+  className: nginx
+  host: "" # e.g. pact.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # MCP streamable HTTP uses long-lived SSE responses.
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  tls: true # secret name: <host with dots replaced>-tls
+
+# Non-secret settings, rendered as plain env vars (PACT_LOG_LEVEL, PACT_RELOAD_SECONDS, ...).
+env:
+  PACT_LOG_LEVEL: INFO
+  PACT_RELOAD_SECONDS: "10"
+
+# Secret holding PACT_SOURCE__*, PACT_AGENT__*__KEY and PACT_OIDC__* variables.
+existingSecret: ""
+# Only used when existingSecret is empty: the chart renders these into a Secret.
+secrets: {}
+
+# Where the permissions folder comes from:
+#   configMap — config.files below (deploy.sh fills it from ./config)
+#   gitSync   — a git-sync sidecar keeps a checkout of gitSync.repo current
+#   image     — the example folder baked into the image at /config
+config:
+  source: configMap
+  files: {}
+  #  "agents/default.yaml": |
+  #    agent: default
+  #    roles: [jira:reader]
+
+gitSync:
+  image: registry.k8s.io/git-sync/git-sync:v4.4.0
+  repo: "" # https://github.com/acme/pact-config.git
+  ref: main
+  path: "" # folder inside the repo that holds agents/, users.yaml, domains.yaml
+  period: 60s
+  # Secret with GITSYNC_USERNAME and GITSYNC_PASSWORD (a read-only token) for private repos.
+  existingSecret: ""
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { memory: 128Mi }
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile: { type: RuntimeDefault }
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: { drop: [ALL] }
+
+resources:
+  requests: { cpu: 50m, memory: 128Mi }
+  limits: { memory: 512Mi }
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

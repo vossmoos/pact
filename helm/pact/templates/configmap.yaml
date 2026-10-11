@@ -1,0 +1,12 @@
+{{- if and (eq .Values.config.source "configMap") .Values.config.files }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pact.fullname" . }}-config
+  labels:
+    {{- include "pact.labels" . | nindent 4 }}
+data:
+  {{- range $path, $content := .Values.config.files }}
+  {{ include "pact.configKey" $path }}: {{ $content | quote }}
+  {{- end }}
+{{- end }}
