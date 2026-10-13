@@ -6,7 +6,7 @@ owner: support-lead@example.com
 description: Reads helpdesk tickets and files follow-up issues in Jira.
 
 roles:
-  - freshdesk:reader
+  - zendesk:reader
   - jira:reader
 
 # Explicit deny always wins, even over roles added later.

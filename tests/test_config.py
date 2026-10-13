@@ -22,7 +22,7 @@ def test_example_config_is_valid(config_dir, catalog):
     policy = load(config_dir, catalog)
     assert set(policy.agents) == {"default", "support-bot"}
     default = policy.agents["default"]
-    assert {g.role for g in default.grants} == {"freshdesk:responder", "jira:contributor", "wrike:contributor"}
+    assert {g.role for g in default.grants} == {"zendesk:responder", "jira:contributor", "wrike:contributor"}
     assert "pii" in default.tolerations
     assert policy.anonymous.grants == ()  # unattended calls are denied unless a service user exists
     assert policy.service_users["default"].name == "default-service"
@@ -59,10 +59,10 @@ def test_invalid_config_is_refused(config_dir, catalog, filename, content, messa
 
 
 def test_roles_of_unconfigured_sources_are_warnings(config_dir, catalog):
-    (config_dir / "agents" / "x.yaml").write_text("agent: x\nroles: [zendesk:reader, '*:reader']\n")
+    (config_dir / "agents" / "x.yaml").write_text("agent: x\nroles: [servicenow:reader, '*:reader']\n")
     policy = load(config_dir, catalog)
-    assert any("zendesk" in w for w in policy.warnings)
-    assert {g.role for g in policy.agents["x"].grants} == {"freshdesk:reader", "jira:reader", "wrike:reader"}
+    assert any("servicenow" in w for w in policy.warnings)
+    assert {g.role for g in policy.agents["x"].grants} == {"zendesk:reader", "jira:reader", "wrike:reader"}
 
 
 def test_reload_keeps_last_good_config(env, config_dir, catalog):

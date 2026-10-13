@@ -1,9 +1,9 @@
-"""Freshdesk (API v2) connector.
+"""Zendesk (API v2) connector.
 
 Settings (``PACT_SOURCE__<NAME>__<SETTING>``):
 
-    DOMAIN    acme.freshdesk.com
-    API_KEY   the agent's Freshdesk API key (plain key, Pact adds the Basic auth encoding)
+    DOMAIN    acme.zendesk.com
+    API_KEY   the agent's Zendesk API key (plain key, Pact adds the Basic auth encoding)
     TIMEOUT   seconds, default 30
 """
 
@@ -30,11 +30,11 @@ TAG_RE = re.compile(r"^[\w .:/-]{1,64}$")
 Limit = Annotated[int, Field(ge=1, le=100, description="Maximum number of results")]
 
 
-class FreshdeskConnector(Connector):
-    type = "freshdesk"
+class ZendeskConnector(Connector):
+    type = "zendesk"
     settings = {
-        "domain": Setting(help="e.g. acme.freshdesk.com"),
-        "api_key": Setting(secret=True, help="Freshdesk API key"),
+        "domain": Setting(help="e.g. acme.zendesk.com"),
+        "api_key": Setting(secret=True, help="Zendesk API key"),
         "timeout": Setting(required=False, default="30"),
     }
 
@@ -99,7 +99,7 @@ class FreshdeskConnector(Connector):
             raise ValueError("give at least one of status, priority, tag or created_after")
         out: list[dict[str, Any]] = []
         page = 1
-        while len(out) < limit and page <= 10:  # Freshdesk search: 30 per page, 10 pages max
+        while len(out) < limit and page <= 10:  # Zendesk search: 30 per page, 10 pages max
             data = await self.http.get("/search/tickets", params={"query": f'"{" AND ".join(clauses)}"', "page": page})
             results = (data or {}).get("results") or []
             out.extend(_ticket_summary(row) for row in results)

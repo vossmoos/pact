@@ -14,8 +14,8 @@ READER_KEY = "test-reader-key-0123456789"
 ORPHAN_KEY = "test-orphan-key-0123456789"
 
 BASE_ENV = {
-    "PACT_SOURCE__FRESHDESK__DOMAIN": "acme.freshdesk.com",
-    "PACT_SOURCE__FRESHDESK__API_KEY": "fd-key",
+    "PACT_SOURCE__ZENDESK__DOMAIN": "acme.zendesk.com",
+    "PACT_SOURCE__ZENDESK__API_KEY": "fd-key",
     "PACT_SOURCE__JIRA__SITE": "acme.atlassian.net",
     "PACT_SOURCE__JIRA__EMAIL": "bot@acme.test",
     "PACT_SOURCE__JIRA__API_TOKEN": "jira-token",

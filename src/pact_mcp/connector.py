@@ -142,8 +142,8 @@ def _only_keys(raw: Mapping[str, Any], allowed: set[str], origin: str) -> None:
 class Connector:
     """Base class for a source type. Subclasses set ``type`` and ``settings``.
 
-    One instance is created per configured source, so ``PACT_SOURCE__SUPPORT_EU__TYPE=freshdesk``
-    gives a second, independent Freshdesk connector named ``support_eu``.
+    One instance is created per configured source, so ``PACT_SOURCE__SUPPORT_EU__TYPE=zendesk``
+    gives a second, independent Zendesk connector named ``support_eu``.
     """
 
     type: ClassVar[str]

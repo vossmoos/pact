@@ -13,7 +13,7 @@ def visible_tools(env, config_dir, agent_key_name):
     return {name for name, spec in catalog.tools.items() if decide(caller, spec, policy.domains).allowed}
 
 
-def test_default_agent_has_every_bundled_tool(env, config_dir):
+def test_default_agent_has_every_example_tool(env, config_dir):
     catalog = Catalog.build(Settings.from_env(env))
     assert visible_tools(env, config_dir, "DEFAULT") == set(catalog.tools)
 

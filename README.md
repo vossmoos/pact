@@ -5,17 +5,17 @@
 Pact gives AI agents cloud-style IAM for the SaaS apps your cloud IAM can't reach. Each agent gets one endpoint, one key and a reviewed tool set, and sees only the tools and data its roles allow. Pact holds the vendor credentials; agents never do.
 
 - **Curated tools, not a proxy.** Each source ships a small, reviewed tool set with constrained arguments. There is no "call any endpoint" tool.
-- **One label per tool:** `source:entity:operation`, for example `freshdesk:ticket:read`.
-- **Roles per source**, such as `freshdesk:reader`, combined per agent. Explicit deny always wins.
+- **One label per tool:** `source:entity:operation`, for example `zendesk:ticket:read`.
+- **Roles per source**, such as `zendesk:reader`, combined per agent. Explicit deny always wins.
 - **Users:** effective access is the agent's roles ∩ the user's roles. Without a user token, an agent runs as its named service user, or as the built-in `anonymous` user, which has no access by default.
 - **Data scoping:** replies are filtered by row (`company_id == {user.org}`) and by field (taints such as `pii`, plus redaction rules).
 - **Audit log:** every decision is a JSON line naming the agent, user, tool, label and the rule that applied.
 - **Configuration is only environment variables plus a folder of YAML.** Pact has no UI, no CLI and no LLM; every decision is deterministic.
 
-Built on [FastMCP](https://github.com/jlowin/fastmcp). Bundled packs: **Freshdesk**, **Jira Cloud**, **Wrike**. License: MIT.
+Built on [FastMCP](https://github.com/jlowin/fastmcp). License: MIT.
 
 ```
-Agent ──(Pact key, optional user SSO token)──▶ Pact /mcp ──(vendor credentials)──▶ Freshdesk · Jira · Wrike
+Agent ──(Pact key, optional user SSO token)──▶ Pact /mcp ──(vendor credentials)──▶ your SaaS apps
                                                1. identify agent + user
                                                2. map tool → label
                                                3. check roles, taints, denies
@@ -31,7 +31,7 @@ Agent ──(Pact key, optional user SSO token)──▶ Pact /mcp ──(vendor
 - [Concepts](#concepts)
 - [Example: create an agent with permissions](#example-create-an-agent-with-permissions)
 - [Example: create a connector](#example-create-a-connector)
-- [Bundled packs](#bundled-packs)
+- [Example packs](#example-packs)
 - [Configuration reference](#configuration-reference)
 - [Deploy](#deploy) (Docker, Helm, Scaleway Kapsule)
 - [Security notes](#security-notes)
@@ -79,7 +79,7 @@ curl localhost:8080/health
 # {"status":"ok","version":"0.1.0","config":"3bcd9bd3777e"}
 ```
 
-The example [`config/`](config) folder ships a **`default` agent** with every role of every bundled pack. Its key is `PACT_AGENT__DEFAULT__KEY`; [`deploy.sh`](deploy.sh) generates one into `.env` when it is missing. Unattended, it runs as the service user `default-service`. The `anonymous` user has no access. Narrow both before real use.
+The example [`config/`](config) folder ships a **`default` agent** with every role of every example pack. Its key is `PACT_AGENT__DEFAULT__KEY`; [`deploy.sh`](deploy.sh) generates one into `.env` when it is missing. Unattended, it runs as the service user `default-service`. The `anonymous` user has no access. Narrow both before real use.
 
 ## Connect an agent
 
@@ -140,17 +140,17 @@ PACT_SOURCE__<NAME>__<SETTING>=value
 The lowercased `NAME` becomes the source name, which is the first part of every tool, label and role it publishes. `TYPE` picks the **pack** and defaults to the name, so you can connect the same app twice:
 
 ```dotenv
-PACT_SOURCE__FRESHDESK__DOMAIN=acme.freshdesk.com      # source "freshdesk", type freshdesk
-PACT_SOURCE__FRESHDESK__API_KEY=...
-PACT_SOURCE__SUPPORT_EU__TYPE=freshdesk                 # source "support_eu", type freshdesk
-PACT_SOURCE__SUPPORT_EU__DOMAIN=acme-eu.freshdesk.com
+PACT_SOURCE__ZENDESK__DOMAIN=acme.zendesk.com      # source "zendesk", type zendesk
+PACT_SOURCE__ZENDESK__API_KEY=...
+PACT_SOURCE__SUPPORT_EU__TYPE=zendesk                 # source "support_eu", type zendesk
+PACT_SOURCE__SUPPORT_EU__DOMAIN=acme-eu.zendesk.com
 PACT_SOURCE__SUPPORT_EU__API_KEY=...
 ```
 
 A **pack** is a connector (`<type>.py`) plus its label file (`<type>.yaml`). It defines the curated tools and the roles once; Pact adds the source name when it loads it:
 
 ```yaml
-# src/pact_mcp/packs/freshdesk.yaml (excerpt)
+# src/pact_mcp/packs/zendesk.yaml (excerpt)
 tools:
   get_ticket:
     action: ticket:read
@@ -162,7 +162,7 @@ roles:
   contributor: [ticket:read, ticket:list, contact:read, ticket:write]
 ```
 
-The source `freshdesk` therefore publishes the tool `freshdesk_get_ticket` with label `freshdesk:ticket:read`, and the roles `freshdesk:reader` and `freshdesk:contributor`. Pact refuses to start if a connector method has no label or a label has no method.
+The source `zendesk` therefore publishes the tool `zendesk_get_ticket` with label `zendesk:ticket:read`, and the roles `zendesk:reader` and `zendesk:contributor`. Pact refuses to start if a connector method has no label or a label has no method.
 
 ### Labels
 
@@ -170,8 +170,8 @@ The source `freshdesk` therefore publishes the tool `freshdesk_get_ticket` with 
 
 | Pattern | Matches |
 |---|---|
-| `freshdesk:ticket:read` | exactly that |
-| `*:ticket:read` | ticket reads in every source (Freshdesk, a second Freshdesk, Zendesk…) |
+| `zendesk:ticket:read` | exactly that |
+| `*:ticket:read` | ticket reads in every source (Zendesk, a second Zendesk…) |
 | `*:*:delete` | every delete |
 | `jira:issue:write` | `write` = `create` + `update` |
 | `support:*:*` | every source in the `support` domain (see `domains.yaml`) |
@@ -195,14 +195,14 @@ Keep it in Git and route reviews with CODEOWNERS: each agent file can belong to 
 # config/agents/support-bot.yaml
 agent: support-bot              # must match the file name
 owner: anna@acme.com
-roles: [freshdesk:reader, jira:reader]
+roles: [zendesk:reader, jira:reader]
 deny: ["*:*:delete", "*:*:send"]
 tolerations: []                 # e.g. [pii]
 scope:                          # keep only rows whose fields match (applies to replies)
-  - match: "freshdesk:ticket:*"
+  - match: "zendesk:ticket:*"
     where: { company_id: "{user.org}" }
 redact:                         # replace fields with "[redacted]"
-  - match: "freshdesk:*:*"
+  - match: "zendesk:*:*"
     fields: [custom_fields]
 ```
 
@@ -224,7 +224,7 @@ users:
 
   default-service:                              # unattended identity of the default agent
     service_for: [default]
-    roles: [freshdesk:responder, jira:contributor, wrike:contributor]
+    roles: [zendesk:responder, jira:contributor, wrike:contributor]
 
   vp:       { match: { groups: vp },        roles: [jira:contributor] }
   employee: { match: { groups: employees }, roles: [jira:reader, wrike:reader] }
@@ -252,7 +252,7 @@ Tool descriptions tell the agent its scope and redacted fields.
 
 ```yaml
 # config/domains.yaml
-support: [freshdesk, support_eu]
+support: [zendesk, support_eu]
 work: [jira, wrike]
 ```
 
@@ -396,11 +396,11 @@ Rules for a good pack:
 
 To ship a pack with Pact itself, put the two files in `src/pact_mcp/packs/` and add the module to `BUILTIN_MODULES` in [`catalog.py`](src/pact_mcp/catalog.py).
 
-## Bundled packs
+## Example packs
 
-### Freshdesk (`TYPE=freshdesk`)
+### Zendesk (`TYPE=zendesk`)
 
-Settings: `DOMAIN` (e.g. `acme.freshdesk.com`), `API_KEY` (the plain API key; Pact encodes it for Basic auth), `TIMEOUT` (optional, default 30 s).
+Settings: `DOMAIN` (e.g. `acme.zendesk.com`), `API_KEY` (the plain API key; Pact encodes it for Basic auth), `TIMEOUT` (optional, default 30 s).
 
 | Tool | Label | Notes |
 |---|---|---|
@@ -568,7 +568,7 @@ src/pact_mcp/
   connector.py   Connector base class, @tool, pack format
   identity.py    agent keys, OIDC user tokens
   audit.py       JSON-lines audit log
-  packs/         bundled Freshdesk, Jira and Wrike packs
+  packs/         example connector packs (Zendesk, Jira, Wrike)
 config/          example permissions (default agent with full access)
 examples/        example plugin connector
 helm/pact/       Helm chart

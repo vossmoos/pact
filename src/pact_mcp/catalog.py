@@ -19,12 +19,12 @@ from pact_mcp.settings import Settings
 
 log = logging.getLogger("pact")
 
-BUILTIN_MODULES = ("pact_mcp.packs.freshdesk", "pact_mcp.packs.jira", "pact_mcp.packs.wrike")
+BUILTIN_MODULES = ("pact_mcp.packs.zendesk", "pact_mcp.packs.jira", "pact_mcp.packs.wrike")
 
 
 @dataclass(frozen=True)
 class ToolSpec:
-    name: str  # published MCP name, e.g. freshdesk_get_ticket
+    name: str  # published MCP name, e.g. zendesk_get_ticket
     source: str
     label: Label
     taints: tuple[str, ...]
@@ -37,7 +37,7 @@ class ToolSpec:
 class Catalog:
     sources: Mapping[str, Connector]
     tools: Mapping[str, ToolSpec]
-    #: "freshdesk:reader" -> fully-qualified label patterns
+    #: "zendesk:reader" -> fully-qualified label patterns
     roles: Mapping[str, tuple[LabelPattern, ...]]
 
     @classmethod
@@ -81,7 +81,7 @@ class Catalog:
 
 
 def load_connector_modules(plugins: tuple[str, ...] = ()) -> None:
-    """Import the bundled packs and any ``PACT_PLUGINS`` modules so their connectors register."""
+    """Import the example packs and any ``PACT_PLUGINS`` modules so their connectors register."""
     for module in (*BUILTIN_MODULES, *plugins):
         importlib.import_module(module)
 

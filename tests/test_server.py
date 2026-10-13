@@ -35,7 +35,7 @@ class FakeUsers:
 def server(env, config_dir):
     default = config_dir / "agents" / "default.yaml"
     default.write_text(default.read_text().replace("  - wrike:contributor", "  - wrike:contributor\n  - crm:sales"))
-    (config_dir / "agents" / "reader.yaml").write_text("agent: reader\nroles: [freshdesk:reader, crm:reader]\n")
+    (config_dir / "agents" / "reader.yaml").write_text("agent: reader\nroles: [zendesk:reader, crm:reader]\n")
     (config_dir / "users.yaml").write_text(
         "users:\n"
         "  anonymous: { roles: [] }\n"
@@ -98,17 +98,17 @@ async def test_each_key_sees_its_own_tools(server):
     async with client(server, ORPHAN_KEY) as c:
         assert await c.list_tools() == []
 
-    assert len(default_tools) == 30  # 11 freshdesk + 9 jira + 7 wrike + 3 crm
+    assert len(default_tools) == 30  # 11 zendesk + 9 jira + 7 wrike + 3 crm
     assert set(reader_tools) == {
-        "freshdesk_list_tickets",
-        "freshdesk_search_tickets",
-        "freshdesk_get_ticket",
-        "freshdesk_list_conversations",
-        "freshdesk_get_company",
-        "freshdesk_get_article",
+        "zendesk_list_tickets",
+        "zendesk_search_tickets",
+        "zendesk_get_ticket",
+        "zendesk_list_conversations",
+        "zendesk_get_company",
+        "zendesk_get_article",
         "crm_list_deals",
         "crm_get_deal",
-    }  # freshdesk_get_contact is hidden: tainted pii, no toleration
+    }  # zendesk_get_contact is hidden: tainted pii, no toleration
     deal = reader_tools["crm_get_deal"]
     assert deal.annotations.read_only_hint is True
     assert "Redacted fields: margin." in deal.description

@@ -3,7 +3,7 @@
     pact-config/
       agents/<agent>.yaml   one file per agent (roles, deny, tolerations, scope, redact)
       users.yaml            SSO claim matching, service users and the built-in ``anonymous`` user
-      domains.yaml          optional groups of sources, e.g. support: [freshdesk, zendesk]
+      domains.yaml          optional groups of sources, e.g. support: [zendesk, zendesk]
 
 The whole folder is validated on every load. A broken folder is refused as a whole and
 the last good policy keeps running.
@@ -345,7 +345,7 @@ def _only_keys(raw: Mapping[str, Any], allowed: set[str], origin: str) -> None:
 
 
 class _RoleResolver:
-    """Turns role references (``freshdesk:reader``, ``*:reader``) into label grants."""
+    """Turns role references (``zendesk:reader``, ``*:reader``) into label grants."""
 
     def __init__(self, roles: Mapping[str, tuple[LabelPattern, ...]], sources: set[str]) -> None:
         self.roles = roles
@@ -362,7 +362,7 @@ class _RoleResolver:
             else:
                 source, sep, role = ref.partition(":")
                 if not sep or not NAME_RE.match(source) or not NAME_RE.match(role):
-                    raise ConfigError(f"{origin}: role {ref!r} must look like source:role, e.g. freshdesk:reader")
+                    raise ConfigError(f"{origin}: role {ref!r} must look like source:role, e.g. zendesk:reader")
                 if ref in self.roles:
                     names = [ref]
                 elif source in self.sources:

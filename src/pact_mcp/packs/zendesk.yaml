@@ -1,7 +1,7 @@
-# Freshdesk pack. Pact prefixes every label, tool and role with the source name,
-# so a source named "freshdesk" publishes freshdesk_get_ticket = freshdesk:ticket:read
-# and the roles freshdesk:reader, freshdesk:contributor, freshdesk:responder.
-pack: freshdesk
+# Zendesk pack. Pact prefixes every label, tool and role with the source name,
+# so a source named "zendesk" publishes zendesk_get_ticket = zendesk:ticket:read
+# and the roles zendesk:reader, zendesk:contributor, zendesk:responder.
+pack: zendesk
 version: "1"
 description: Helpdesk tickets, conversations, contacts, companies and solution articles.
 

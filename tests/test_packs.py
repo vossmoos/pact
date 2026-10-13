@@ -5,27 +5,27 @@ from pact_mcp.connector import Connector, Pack, PackError, tool
 from pact_mcp.settings import Settings
 
 
-def test_bundled_packs_match_their_connectors():
+def test_example_packs_match_their_connectors():
     load_connector_modules(("acme_crm",))
-    for connector_type in ("freshdesk", "jira", "wrike", "acme_crm"):
+    for connector_type in ("zendesk", "jira", "wrike", "acme_crm"):
         pack = Connector.registry[connector_type].load_pack()
         assert pack.tools and pack.roles
 
 
 def test_catalog_prefixes_tools_labels_and_roles(env):
     catalog = Catalog.build(Settings.from_env(env))
-    spec = catalog.tools["freshdesk_get_ticket"]
-    assert str(spec.label) == "freshdesk:ticket:read"
-    assert "Label: freshdesk:ticket:read." in spec.description
-    assert "freshdesk:reader" in catalog.roles and "jira:contributor" in catalog.roles
-    assert catalog.tools["freshdesk_get_contact"].taints == ("pii",)
+    spec = catalog.tools["zendesk_get_ticket"]
+    assert str(spec.label) == "zendesk:ticket:read"
+    assert "Label: zendesk:ticket:read." in spec.description
+    assert "zendesk:reader" in catalog.roles and "jira:contributor" in catalog.roles
+    assert catalog.tools["zendesk_get_contact"].taints == ("pii",)
 
 
 def test_second_source_of_same_type_is_independent(env):
     env = {
         **env,
-        "PACT_SOURCE__SUPPORT_EU__TYPE": "freshdesk",
-        "PACT_SOURCE__SUPPORT_EU__DOMAIN": "eu.freshdesk.com",
+        "PACT_SOURCE__SUPPORT_EU__TYPE": "zendesk",
+        "PACT_SOURCE__SUPPORT_EU__DOMAIN": "eu.zendesk.com",
         "PACT_SOURCE__SUPPORT_EU__API_KEY": "k",
     }
     catalog = Catalog.build(Settings.from_env(env))
@@ -41,7 +41,7 @@ def test_missing_and_unknown_settings_fail_fast(env):
     with pytest.raises(PackError, match="unknown settings"):
         Catalog.build(Settings.from_env({**env, "PACT_SOURCE__JIRA__SPACE": "x"}))
     with pytest.raises(PackError, match="unknown TYPE"):
-        Catalog.build(Settings.from_env({**env, "PACT_SOURCE__ZENDESK__SUBDOMAIN": "x"}))
+        Catalog.build(Settings.from_env({**env, "PACT_SOURCE__NOSUCH__SUBDOMAIN": "x"}))
 
 
 def test_pack_validation():

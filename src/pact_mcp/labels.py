@@ -1,6 +1,6 @@
 """Action labels: ``source:entity:operation``.
 
-Every curated tool carries exactly one label, for example ``freshdesk:ticket:read``.
+Every curated tool carries exactly one label, for example ``zendesk:ticket:read``.
 Permissions (role grants and deny rules) are label *patterns*: each of the three
 segments may be a glob (``*``, ``support_*``), the source segment may name a domain
 group from ``domains.yaml``, and the operation ``write`` is shorthand for

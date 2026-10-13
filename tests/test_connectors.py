@@ -8,18 +8,18 @@ import pytest
 import respx
 
 from pact_mcp.http import UpstreamError
-from pact_mcp.packs.freshdesk import FreshdeskConnector
+from pact_mcp.packs.zendesk import ZendeskConnector
 from pact_mcp.packs.jira import JiraConnector, adf_to_text, text_to_adf
 from pact_mcp.packs.wrike import WrikeConnector
 
-FD = "https://acme.freshdesk.com/api/v2"
+ZD = "https://acme.zendesk.com/api/v2"
 JIRA = "https://acme.atlassian.net/rest/api/3"
 WRIKE = "https://www.wrike.com/api/v4"
 
 
 @pytest.fixture
-def freshdesk():
-    return FreshdeskConnector("freshdesk", {"domain": "acme.freshdesk.com", "api_key": "abc", "timeout": "5"})
+def zendesk():
+    return ZendeskConnector("zendesk", {"domain": "acme.zendesk.com", "api_key": "abc", "timeout": "5"})
 
 
 @pytest.fixture
@@ -35,11 +35,11 @@ def wrike():
 
 
 @respx.mock
-async def test_freshdesk_auth_and_ticket_shape(freshdesk):
-    route = respx.get(f"{FD}/tickets/7").respond(
+async def test_zendesk_auth_and_ticket_shape(zendesk):
+    route = respx.get(f"{ZD}/tickets/7").respond(
         json={"id": 7, "subject": "Help", "status": 2, "priority": 3, "requester": {"id": 1, "email": "a@b.c"}}
     )
-    ticket = await freshdesk.get_ticket(7)
+    ticket = await zendesk.get_ticket(7)
     assert ticket["status"] == "open" and ticket["priority"] == "high"
     assert ticket["requester"]["email"] == "a@b.c"
     auth = route.calls.last.request.headers["Authorization"]
@@ -47,30 +47,30 @@ async def test_freshdesk_auth_and_ticket_shape(freshdesk):
 
 
 @respx.mock
-async def test_freshdesk_search_builds_constrained_query(freshdesk):
-    route = respx.get(f"{FD}/search/tickets").respond(json={"results": [{"id": 1, "status": 3}], "total": 1})
-    rows = await freshdesk.search_tickets(status=["open", "pending"], tag="vip", created_after=date(2026, 1, 2))
+async def test_zendesk_search_builds_constrained_query(zendesk):
+    route = respx.get(f"{ZD}/search/tickets").respond(json={"results": [{"id": 1, "status": 3}], "total": 1})
+    rows = await zendesk.search_tickets(status=["open", "pending"], tag="vip", created_after=date(2026, 1, 2))
     assert rows[0]["status"] == "pending"
     query = route.calls.last.request.url.params["query"]
     assert query == "\"(status:2 OR status:3) AND tag:'vip' AND created_at:>'2026-01-02'\""
     with pytest.raises(ValueError):
-        await freshdesk.search_tickets(tag="x' OR status:5")
+        await zendesk.search_tickets(tag="x' OR status:5")
 
 
 @respx.mock
-async def test_freshdesk_update_merges_tags(freshdesk):
-    respx.get(f"{FD}/tickets/7").respond(json={"id": 7, "tags": ["a"]})
-    put = respx.put(f"{FD}/tickets/7").respond(json={"id": 7, "status": 4, "tags": ["a", "b"]})
-    result = await freshdesk.update_ticket(7, status="resolved", add_tags=["b", "a"])
+async def test_zendesk_update_merges_tags(zendesk):
+    respx.get(f"{ZD}/tickets/7").respond(json={"id": 7, "tags": ["a"]})
+    put = respx.put(f"{ZD}/tickets/7").respond(json={"id": 7, "status": 4, "tags": ["a", "b"]})
+    result = await zendesk.update_ticket(7, status="resolved", add_tags=["b", "a"])
     assert json.loads(put.calls.last.request.content) == {"status": 4, "tags": ["a", "b"]}
     assert result["status"] == "resolved"
 
 
 @respx.mock
-async def test_freshdesk_upstream_error_is_readable(freshdesk):
-    respx.get(f"{FD}/tickets/9").respond(404, json={"description": "Not found", "errors": []})
+async def test_zendesk_upstream_error_is_readable(zendesk):
+    respx.get(f"{ZD}/tickets/9").respond(404, json={"description": "Not found", "errors": []})
     with pytest.raises(UpstreamError, match="HTTP 404"):
-        await freshdesk.get_ticket(9)
+        await zendesk.get_ticket(9)
 
 
 @respx.mock

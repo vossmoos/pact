@@ -39,7 +39,7 @@ log = logging.getLogger("pact")
 
 INSTRUCTIONS = (
     "Pact exposes a curated, permission-checked set of SaaS tools. Every tool name starts "
-    "with its source (freshdesk_, jira_, ...). Calls outside your roles are refused."
+    "with its source (zendesk_, jira_, ...). Calls outside your roles are refused."
 )
 
 

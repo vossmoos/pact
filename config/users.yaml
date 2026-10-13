@@ -14,16 +14,16 @@ users:
   anonymous:
     roles: []
 
-  # The default agent's identity for unattended calls: everything the bundled packs offer.
+  # The default agent's identity for unattended calls: everything the example packs offer.
   default-service:
     service_for: [default]
-    roles: [freshdesk:responder, jira:contributor, wrike:contributor]
+    roles: [zendesk:responder, jira:contributor, wrike:contributor]
 
   # Example SSO entries (inactive until OIDC is configured):
   support-team:
     match: { groups: support }
-    roles: [freshdesk:responder, jira:reader]
+    roles: [zendesk:responder, jira:reader]
 
   engineering:
     match: { groups: engineering }
-    roles: [jira:contributor, wrike:contributor, freshdesk:reader]
+    roles: [jira:contributor, wrike:contributor, zendesk:reader]
